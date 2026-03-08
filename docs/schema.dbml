@@ -1,0 +1,131 @@
+// ============================================================================
+// ENUMS
+// ============================================================================
+Enum user_role {
+  egresado
+  empresa
+}
+
+Enum request_status {
+  pendiente
+  aceptada
+  rechazada
+}
+
+Enum slot_status {
+  disponible
+  reservado
+  completado
+  cancelado
+}
+
+Enum appointment_status {
+  programada
+  completada
+  cancelada
+}
+
+// ============================================================================
+// TABLES
+// ============================================================================
+
+Table users {
+  id UUID [pk]
+  email VARCHAR [unique, not null]
+  password_hash VARCHAR
+  role user_role [not null]
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+}
+
+Table profiles {
+  id UUID [pk]
+  user_id UUID [unique, not null]
+  nombre VARCHAR [not null]
+  experiencia_meses INTEGER [default: 0]
+  rating DECIMAL [default: 0.0]
+  resenas_count INTEGER [default: 0]
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+}
+
+Table skills {
+  id UUID [pk]
+  name VARCHAR [unique, not null]
+  created_at TIMESTAMPTZ
+}
+
+Table profile_skills {
+  profile_id UUID [pk]
+  skill_id UUID [pk]
+  created_at TIMESTAMPTZ
+}
+
+Table requests {
+  id UUID [pk]
+  empresa_id UUID [not null]
+  profile_id UUID [not null]
+  estado request_status [default: 'pendiente']
+  descripcion TEXT [not null]
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+}
+
+Table slots {
+  id UUID [pk]
+  profile_id UUID [not null]
+  fecha_inicio TIMESTAMPTZ [not null]
+  fecha_fin TIMESTAMPTZ
+  estado slot_status [default: 'disponible']
+  precio DECIMAL [not null]
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+}
+
+Table appointments {
+  id UUID [pk]
+  slot_id UUID [unique, not null]
+  empresa_id UUID [not null]
+  estado appointment_status [default: 'programada']
+  created_at TIMESTAMPTZ
+  updated_at TIMESTAMPTZ
+}
+
+Table reviews {
+  id UUID [pk]
+  appointment_id UUID [unique]
+  profile_id UUID [not null]
+  empresa_id UUID [not null]
+  estrellas INTEGER [not null]
+  comentario TEXT
+  created_at TIMESTAMPTZ
+}
+
+// ============================================================================
+// RELATIONS
+// ============================================================================
+
+// 1 a 1 (user - profile)
+Ref: profiles.user_id - users.id 
+
+// N a M (profiles - skills) resuelta con tabla pivote
+Ref: profile_skills.profile_id > profiles.id
+Ref: profile_skills.skill_id > skills.id
+
+// N a 1 (requests - users(empresa) & profiles)
+Ref: requests.empresa_id > users.id
+Ref: requests.profile_id > profiles.id
+
+// N a 1 (slots - profiles)
+Ref: slots.profile_id > profiles.id
+
+// 1 a 1 (appointments - slots) un appointment bloquea un slot
+Ref: appointments.slot_id - slots.id
+// N a 1 (appointments - users(empresa))
+Ref: appointments.empresa_id > users.id
+
+// 1 a 1 (reviews - appointments) una revisión por cita
+Ref: reviews.appointment_id - appointments.id
+// N a 1 (reviews - profiles y empresa)
+Ref: reviews.profile_id > profiles.id
+Ref: reviews.empresa_id > users.id
