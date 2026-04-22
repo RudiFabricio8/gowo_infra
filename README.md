@@ -1,53 +1,57 @@
+# GoWo — Infraestructura
 
-***
+Capa de datos e infraestructura del proyecto GoWo. Contiene la configuración de **PostgreSQL** vía **Docker Compose** y el script de inicialización de la base de datos.
 
-## 3) `gowo-infra/README.md`
+## Stack
 
-```md
-# GoWo - Infraestructura (Docker & Base de Datos)
+- Docker + Docker Compose
+- PostgreSQL 15 (alpine)
+- Volúmenes Docker para persistencia
 
-Este repositorio contiene la **capa de Infraestructura y Datos** del proyecto GoWo. Aquí se definen los contenedores Docker y la configuración de la base de datos para GoWo.
+## Variables de entorno
 
-## Objetivo del repositorio
+Copia `.env.example` a `.env`:
 
-- Definir la base de datos de GoWo (PostgreSQL) y su persistencia.
-- Mantener archivos de infraestructura (por ejemplo: `docker-compose.yml`).
-- Mantener el repositorio **independiente** del código de frontend y backend.
+```env
+POSTGRES_USER=gowo_admin
+POSTGRES_PASSWORD=gowo_secure_pwd_2026
+POSTGRES_DB=gowo_db
+```
 
-## Tecnologías principales
+## Levantar la base de datos
 
-- Docker
-- Docker Compose
-- PostgreSQL (motor de base de datos)
-- Volúmenes de Docker para persistencia de datos
+```bash
+docker compose up -d
+```
 
-## Arquitectura de Datos
+PostgreSQL estará disponible en el puerto **5433** del host.
 
-- Motor de BD: **PostgreSQL**.
-- Puerto interno de la base de datos: **5432**.
-- Persistencia: volumen de Docker (por ejemplo `gowo_db_data`).
-- El backend se conectará usando `DATABASE_URL` o variables equivalentes.
+## Reiniciar desde cero
 
-## Ejemplo de `docker-compose.yml` (a completar por el equipo)
+```bash
+docker compose down -v
+docker compose up -d
+```
 
-> Nota: Este archivo es solo una base; el equipo deberá ajustarlo.
+## Esquema
 
-```yaml
-version: "3.9"
+El archivo `init.sql` crea automáticamente las tablas al iniciar el contenedor por primera vez:
 
-services:
-  gowo-db:
-    image: postgres:16
-    container_name: gowo-db
-    restart: always
-    environment:
-      POSTGRES_USER: gowo_user
-      POSTGRES_PASSWORD: gowo_password
-      POSTGRES_DB: gowo_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - gowo_db_data:/var/lib/postgresql/data
+- `users` — Autenticación y roles (egresado / empresa)
+- `profiles` — Información del egresado con campo `github_username`
+- `skills` + `profile_skills` — Catálogo N:M de habilidades
+- `requests` — Solicitudes de contacto empresa → egresado
+- `slots` — Disponibilidad de agenda del egresado
+- `appointments` — Citas confirmadas
+- `reviews` — Reseñas post-cita
 
-volumes:
-  gowo_db_data:
+El diagrama completo del esquema está en `docs/schema.dbml`.
+
+## Después de levantar la infra
+
+Desde el repositorio del backend, ejecutar:
+
+```bash
+npx prisma generate
+npx prisma db push
+```
